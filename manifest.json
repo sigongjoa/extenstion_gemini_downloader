@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Conversation Downloader",
+  "version": "1.0",
+  "description": "Download Gemini conversations as Markdown and high-quality PDF with images.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "downloads",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://*.googleusercontent.com/*",
+    "https://*.google.com/*",
+    "https://lh3.googleusercontent.com/*",
+    "https://lh3.google.com/*"
+  ],
+  "sandbox": {
+    "pages": [
+      "src/sandbox.html"
+    ]
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "dist/content.js"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/typst_compiler_bg.wasm",
+        "lib/typst_renderer_bg.wasm",
+        "fonts/NanumGothic.ttf"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

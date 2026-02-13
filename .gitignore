@@ -1,0 +1,19 @@
+node_modules/
+dist/
+fonts/
+*.zip
+*.pdf
+*.png
+*.jpg
+*.webp
+*.typ
+*.error.txt
+typst_error.txt
+.DS_Store
+Google Gemini_files/
+conversation.pdf
+conversation.typ
+conversation.md
+conversation.zip
+gemini/
+.gemini/
