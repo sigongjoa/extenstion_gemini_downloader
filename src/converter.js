@@ -149,23 +149,109 @@ export class Converter {
     formatTypstContent(text) {
         if (!text) return "";
 
-        // 1. Basic preprocessing: handle bold (Markdown ** -> Typst *)
-        // Note: We escape everything else, so we do this carefully.
+        // 1. Detect and preserve Math blocks
+        // Delimiters: $$...$$, \[...\], \(...\), $...$
+        const mathBlocks = [];
         let processed = text;
 
-        // 2. Escape special Typst characters
+        // Replace math blocks with placeholders
+        // Order matters: check for double delimiters first
+        const blockPatterns = [
+            { regex: /\$\$([\s\S]+?)\$\$/g, isBlock: true },
+            { regex: /\\\[([\s\S]+?)\\\]/g, isBlock: true },
+            { regex: /\\\(([\s\S]+?)\\\)/g, isBlock: false },
+            { regex: /\$([^\$]+?)\$/g, isBlock: false }
+        ];
+
+        blockPatterns.forEach((pattern, pIdx) => {
+            processed = processed.replace(pattern.regex, (match, formula) => {
+                const id = `__MATH_${mathBlocks.length}__`;
+                mathBlocks.push({ id, formula, isBlock: pattern.isBlock });
+                return id;
+            });
+        });
+
+        // 2. Escape the remaining text part
         processed = this.escapeTypst(processed);
 
-        // 3. Preserve newlines: double newline -> paragraph, single -> forced newline
-        // In Typst markup, a backslash at the end of a line is a forced newline.
-        // We can also just replace \n with \n\n if we want paragraphs, 
-        // but innerText often has many \n.
-        // Let's try to map \n to \  (backslash space) for single newlines
-        // and preserve \n\n as actual paragraph breaks.
+        // 3. Convert preserved math to Typst math syntax and put back
+        mathBlocks.forEach(block => {
+            let typstMath = this.latexToTypstMath(block.formula);
+            // Typst inline math is $ formula $, block math is $ formula $ but usually handled by surrounding whitespace or styling
+            // For block math in Typst, we can wrap it in a block() or just ensure it's on a new line.
+            const wrapper = block.isBlock ? "\n$ " + typstMath + " $\n" : "$ " + typstMath + " $";
+            processed = processed.replace(block.id, wrapper);
+        });
+
+        // 4. Preserve newlines: double newline -> paragraph, single -> forced newline
         processed = processed
-            .replace(/\n\n/g, "\n\n") // Paragraphs stay paragraphs
-            .replace(/(?<!\n)\n(?!\n)/g, " \\\n"); // Single \n -> forced newline
+            .replace(/\n\n/g, "\n\n")
+            .replace(/(?<!\n)\n(?!\n)/g, " \\\n");
 
         return processed;
+    }
+
+    latexToTypstMath(latex) {
+        if (!latex) return "";
+
+        // Basic LaTeX to Typst math conversion
+        // This is an MVP conversion, not a full parser.
+        let converted = latex
+            .replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($1)/($2)')
+            .replace(/\\sqrt\s*\{([^{}]+)\}/g, 'sqrt($1)')
+            .replace(/\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]+)\}/g, 'root($1, $2)')
+            .replace(/\\times/g, ' times ')
+            .replace(/\\cdot/g, ' dot ')
+            .replace(/\\alpha/g, ' alpha ')
+            .replace(/\\beta/g, ' beta ')
+            .replace(/\\gamma/g, ' gamma ')
+            .replace(/\\delta/g, ' delta ')
+            .replace(/\\epsilon/g, ' epsilon ')
+            .replace(/\\zeta/g, ' zeta ')
+            .replace(/\\eta/g, ' eta ')
+            .replace(/\\theta/g, ' theta ')
+            .replace(/\\iota/g, ' iota ')
+            .replace(/\\kappa/g, ' kappa ')
+            .replace(/\\lambda/g, ' lambda ')
+            .replace(/\\mu/g, ' mu ')
+            .replace(/\\nu/g, ' nu ')
+            .replace(/\\xi/g, ' xi ')
+            .replace(/\\pi/g, ' pi ')
+            .replace(/\\rho/g, ' rho ')
+            .replace(/\\sigma/g, ' sigma ')
+            .replace(/\\tau/g, ' tau ')
+            .replace(/\\upsilon/g, ' upsilon ')
+            .replace(/\\phi/g, ' phi ')
+            .replace(/\\chi/g, ' chi ')
+            .replace(/\\psi/g, ' psi ')
+            .replace(/\\omega/g, ' omega ')
+            .replace(/\\Sigma/g, ' Sigma ')
+            .replace(/\\Delta/g, ' Delta ')
+            .replace(/\\Phi/g, ' Phi ')
+            .replace(/\\Omega/g, ' Omega ')
+            .replace(/\\pm/g, ' plus.minus ')
+            .replace(/\\mp/g, ' minus.plus ')
+            .replace(/\\neq/g, ' != ')
+            .replace(/\\leq/g, ' <= ')
+            .replace(/\\geq/g, ' >= ')
+            .replace(/\\approx/g, ' approx ')
+            .replace(/\\infty/g, ' oo ')
+            .replace(/\\partial/g, ' partial ')
+            .replace(/\\nabla/g, ' nabla ')
+            .replace(/\\int/g, ' integral ')
+            .replace(/\\sum/g, ' sum ')
+            .replace(/\\prod/g, ' product ')
+            .replace(/\\left\(/g, '(')
+            .replace(/\\right\)/g, ')')
+            .replace(/\\left\[/g, '[')
+            .replace(/\\right\]/g, ']')
+            .replace(/\\left\{/g, '{')
+            .replace(/\\right\}/g, '}')
+            .replace(/\\text\{([^{}]+)\}/g, '"$1"')
+            .replace(/\\limits/g, '') // Typst handles limits
+            .replace(/\{/g, '(')
+            .replace(/\}/g, ')');
+
+        return converted;
     }
 }
