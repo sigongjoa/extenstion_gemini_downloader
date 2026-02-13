@@ -174,7 +174,11 @@ export class Converter {
         // 2. Escape the remaining text part
         processed = this.escapeTypst(processed);
 
-        // 3. Convert preserved math to Typst math syntax and put back
+        // 3. Convert Markdown Bold (** -> *)
+        // Note: After escaping, ** becomes \*\*
+        processed = processed.replace(/\\\*\\\*/g, "*");
+
+        // 4. Convert preserved math to Typst math syntax and put back
         mathBlocks.forEach(block => {
             let typstMath = this.latexToTypstMath(block.formula);
             // Typst inline math is $ formula $, block math is $ formula $ but usually handled by surrounding whitespace or styling
